@@ -11,13 +11,17 @@ end
 
 local results = {}
 while limit > #results do
-    local chunk = redis.call('ZRANGEBYSCORE', key .. ':' .. number, offset, '+inf', 'LIMIT', 0, limit)
-    for i,v in pairs(chunk) do
+    local page = redis.call('ZRANGEBYSCORE', key .. ':' .. number, offset, '+inf', 'LIMIT', 0, limit)
+    if #page == 0 then
+        error("fetched invalid (evicted?) page")
+    end
+
+    for i,v in pairs(page) do
         table.insert(results, v)
     end
 
     -- If the page isn't full, abort to avoid an infinite loop.
-    if size > #chunk then
+    if size > #page then
         break
     end
 
