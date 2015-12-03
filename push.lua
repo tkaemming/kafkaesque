@@ -8,16 +8,19 @@ local item = ARGV[3]
 -- NOTE: The score value is a double 64-bit floating point number, with a maximum value of 2 ^ 53.
 local sequence = tonumber(redis.call('INCR', key .. ':s')) - 1
 
-local index = tonumber(redis.call('GET', key .. ':i') or 0, 16)
-local page = string.format('%s:%x', key, index)
+local number = redis.call('GET', key .. ':n') or 0
+local page = key .. ':' .. number
 
 redis.call('ZADD', page, sequence, item)
 
 -- If our write filled the page, close it and roll over to the next page.
-if redis.call('ZCARD', page) == size then
-    redis.call('SET', key .. ':i', string.format('%x', index + 1))
+local s = redis.call('ZCARD', page)
+if s == size then
+    redis.call('SET', key .. ':n', number + 1)
     redis.call('EXPIRE', page, ttl)
     -- TODO: If there is a maximum page limit, then truncate the previous page.
+elseif s == 1 then
+    redis.call('ZADD', key .. ':i', sequence, number)
 end
 
 return sequence
