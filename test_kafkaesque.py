@@ -55,27 +55,24 @@ def test_consume(client):
 
     items = []
     generator = itertools.imap(
-        lambda (i, v): (i, str(v)),
+        lambda (i, v): [i, str(v)],
         enumerate(itertools.count()),
     )
 
     producer = Producer(client, topic, size=size)
     for payload, offset in itertools.islice(generator, size + 1):
         producer.produce(payload)
-        items.append((payload, offset))
+        items.append([payload, offset])
 
-    # Check with batches aligned with page sizes.
-
-    consumer = Consumer(client, topic, offset=0)
-    batch = list(consumer.next(limit=size))
+    # Check with batches aligned with page sizes, both full and not.
+    consumer = Consumer(client, topic)
+    offset, batch = list(consumer.batch(0, limit=size))
     assert items[:size] == batch
-    assert consumer.offset == size
 
-    batch = list(consumer.next(limit=size))
+    offset, batch = list(consumer.batch(offset, limit=size))
     assert items[size:] == batch
-    assert consumer.offset == size + 1
 
     # Check with batches crossing pages.
-
-    consumer = Consumer(client, topic, offset=0)
-    assert list(consumer.next()) == items
+    consumer = Consumer(client, topic)
+    offset, batch = consumer.batch(0)
+    assert batch == items

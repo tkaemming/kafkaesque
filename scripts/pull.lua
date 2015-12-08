@@ -16,11 +16,17 @@ local cursor = offset
 local results = {}
 while limit > #results do
     local fetch = limit - #results
-    local items = redis.call('ZRANGEBYSCORE', topic .. '/pages/' .. number, cursor, '+inf', 'LIMIT', 0, fetch)
+    local items = redis.call('ZRANGEBYSCORE', topic .. '/pages/' .. number, cursor, '+inf', 'LIMIT', 0, fetch, 'WITHSCORES')
 
+    assert(#items % 2 == 0)
     -- TODO: Is there a more efficient way to do this than iteration?
-    for i,v in pairs(items) do
-        table.insert(results, v)
+    for i=1,#items/2 do
+        table.insert(
+            results, {
+                tonumber(items[i*2]),  -- score (offset)
+                items[i*2-1]           -- payload
+            }
+        )
     end
 
     -- There are two possibilities why the page is smaller than the fetch size:
@@ -28,7 +34,7 @@ while limit > #results do
     -- have hit the endpoint), or
     -- 2.) this is the end of the topic and there is nothing left to read (in
     -- this case we will have reached the endpoint)
-    cursor = cursor + #items
+    cursor = cursor + (#items / 2)
     if fetch > #items and cursor == endpoint then
         break
     end

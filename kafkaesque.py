@@ -25,18 +25,14 @@ class Producer(object):
 
 
 class Consumer(object):
-    def __init__(self, client, topic, offset=0):
+    def __init__(self, client, topic):
         self.client = client
         self.topic = topic
-        self.offset = offset  # next as yet unfetched offset
         self.__pull = client.register_script(open('scripts/pull.lua').read())
 
-    def next(self, limit=1024):
-        logger.debug('Fetching (up to) %s items for %r from %s...', limit, self.topic, self.offset)
-        cursor, results = self.__pull((self.topic,), (self.offset, limit))
-        for i, result in enumerate(results):
-            yield self.offset + i, result
-        self.offset = cursor
+    def batch(self, offset, limit=1024):
+        logger.debug('Fetching (up to) %s items for %r from %s...', limit, self.topic, offset)
+        return self.__pull((self.topic,), (offset, limit))
 
 
 @click.group()
