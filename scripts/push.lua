@@ -1,10 +1,11 @@
 local topic = KEYS[1]
 
--- TODO: Figure out configuration for topic settings (page size, TTL, etc.)
-local size = tonumber(ARGV[1])
-
 -- TODO: Support variadic arguments for publishing multiple items.
-local item = ARGV[2]
+local item = ARGV[1]
+
+local configuration = redis.call('GET', topic)
+assert(configuration, 'topic does not exist')
+configuration = cmsgpack.unpack(configuration)
 
 local offset = tonumber(redis.call('INCR', topic .. '/offset')) - 1
 
@@ -13,7 +14,7 @@ local offset = tonumber(redis.call('INCR', topic .. '/offset')) - 1
 local number = 0
 if offset ~= 0 then
     local page = redis.call('ZREVRANGE', topic .. '/pages', '0', '0', 'WITHSCORES')
-    if offset - tonumber(page[2]) >= size then
+    if offset - tonumber(page[2]) >= configuration['size'] then
         number = number + 1
     end
 end

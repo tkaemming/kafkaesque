@@ -3,10 +3,7 @@ import itertools
 import pytest
 from redis.client import StrictRedis
 
-from kafkaesque import (
-    Consumer,
-    Producer,
-)
+from kafkaesque import Topic
 
 
 @pytest.yield_fixture
@@ -18,8 +15,16 @@ def client():
         client.flushdb()
 
 
+def test_create(client):
+    topic = Topic(client, 'topic')
+    topic.create()
+
+    with pytest.raises(Exception):
+        topic.create()
+
+
 def test_produce(client):
-    topic = 'example'
+    name = 'example'
     size = 10
 
     items = []
@@ -28,29 +33,31 @@ def test_produce(client):
         enumerate(itertools.count()),
     )
 
-    producer = Producer(client, topic, size=size)
-    assert client.exists('{}/offset'.format(topic)) is False
+    topic = Topic(client, name)
+    topic.create(size)
+
+    assert client.exists('{}/offset'.format(name)) is False
 
     payload, offset = generator.next()
-    producer.produce(payload)
+    topic.produce(payload)
     items.append((payload, offset))
 
-    assert client.get('{}/offset'.format(topic)) == '1'
-    assert client.zrangebyscore('{}/pages'.format(topic), '-inf', 'inf', withscores=True) == [('0', 0.0)]
-    assert client.zrangebyscore('{}/pages/{}'.format(topic, 0), '-inf', 'inf', withscores=True) == items
+    assert client.get('{}/offset'.format(name)) == '1'
+    assert client.zrangebyscore('{}/pages'.format(name), '-inf', 'inf', withscores=True) == [('0', 0.0)]
+    assert client.zrangebyscore('{}/pages/{}'.format(name, 0), '-inf', 'inf', withscores=True) == items
 
     for payload, offset in itertools.islice(generator, size):
-        producer.produce(payload)
+        topic.produce(payload)
         items.append((payload, offset))
 
-    assert client.get('{}/offset'.format(topic)) == str(size + 1)
-    assert client.zrangebyscore('{}/pages'.format(topic), '-inf', 'inf', withscores=True) == [('0', 0.0), ('1', float(size))]
-    assert client.zrangebyscore('{}/pages/{}'.format(topic, 0), '-inf', 'inf', withscores=True) == items[:size]
-    assert client.zrangebyscore('{}/pages/{}'.format(topic, 1), '-inf', 'inf', withscores=True) == items[size:]
+    assert client.get('{}/offset'.format(name)) == str(size + 1)
+    assert client.zrangebyscore('{}/pages'.format(name), '-inf', 'inf', withscores=True) == [('0', 0.0), ('1', float(size))]
+    assert client.zrangebyscore('{}/pages/{}'.format(name, 0), '-inf', 'inf', withscores=True) == items[:size]
+    assert client.zrangebyscore('{}/pages/{}'.format(name, 1), '-inf', 'inf', withscores=True) == items[size:]
 
 
 def test_consume(client):
-    topic = 'example'
+    name = 'example'
     size = 10
 
     items = []
@@ -59,20 +66,20 @@ def test_consume(client):
         enumerate(itertools.count()),
     )
 
-    producer = Producer(client, topic, size=size)
+    topic = Topic(client, name)
+    topic.create(size)
+
     for payload, offset in itertools.islice(generator, size + 1):
-        producer.produce(payload)
+        topic.produce(payload)
         items.append([payload, offset])
 
     # Check with batches aligned with page sizes, both full and not.
-    consumer = Consumer(client, topic)
-    offset, batch = list(consumer.batch(0, limit=size))
+    offset, batch = list(topic.consume(0, limit=size))
     assert items[:size] == batch
 
-    offset, batch = list(consumer.batch(offset, limit=size))
+    offset, batch = list(topic.consume(offset, limit=size))
     assert items[size:] == batch
 
     # Check with batches crossing pages.
-    consumer = Consumer(client, topic)
-    offset, batch = consumer.batch(0)
+    offset, batch = topic.consume(0)
     assert batch == items
