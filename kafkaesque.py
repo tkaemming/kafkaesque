@@ -1,16 +1,8 @@
 import itertools
-import logging
 import operator
 
 import click
 from redis.client import StrictRedis
-
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s %(levelname)-8s %(message)s',
-)
 
 
 class Producer(object):
@@ -31,7 +23,6 @@ class Consumer(object):
         self.__pull = client.register_script(open('scripts/pull.lua').read())
 
     def batch(self, offset, limit=1024):
-        logger.debug('Fetching (up to) %s items for %r from %s...', limit, self.topic, offset)
         return self.__pull((self.topic,), (offset, limit))
 
 
