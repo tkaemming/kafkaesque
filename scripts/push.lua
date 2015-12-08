@@ -1,26 +1,32 @@
-local key = KEYS[1]
+local topic = KEYS[1]
+
+-- TODO: Figure out configuration for topic settings (page size, TTL, etc.)
 local size = tonumber(ARGV[1])
-local ttl = tonumber(ARGV[2])
-local item = ARGV[3]
 
--- TODO: Figure out the maximum representable integer value in Lua. (2^52?)
--- NOTE: The sequence value is a 64-bit signed integer, with a maximum value of 2^63 − 1.
--- NOTE: The score value is a double 64-bit floating point number, with a maximum value of 2 ^ 53.
-local sequence = tonumber(redis.call('INCR', key .. '/offset')) - 1
+-- TODO: Support variadic arguments for publishing multiple items.
+local item = ARGV[2]
 
-local number = redis.call('GET', key .. '/pages/current') or 0
-local page = key .. '/pages/' .. number
+local offset = tonumber(redis.call('INCR', topic .. '/offset')) - 1
 
-redis.call('ZADD', page, sequence, sequence .. '\0' .. item)
-
--- If our write filled the page, close it and roll over to the next page.
-local s = redis.call('ZCARD', page)
-if s == size then
-    redis.call('SET', key .. '/pages/current', number + 1)
-    redis.call('EXPIRE', page, ttl)
-    -- TODO: If there is a maximum page limit, then truncate the previous page.
-elseif s == 1 then
-    redis.call('ZADD', key .. '/pages', sequence, number)
+-- TODO: This could be made more efficient by storing the active page and it's
+-- beginning offset instead of searching for it every time.
+local number = 0
+if offset ~= 0 then
+    local page = redis.call('ZREVRANGE', topic .. '/pages', '0', '0', 'WITHSCORES')
+    if offset - tonumber(page[2]) >= size then
+        number = number + 1
+    end
 end
 
-return sequence
+-- TODO: We should be able to tell when we are creating a new page without
+-- having to query for it.
+if redis.call('ZSCORE', topic .. '/pages', number) == false then
+    redis.log(redis.LOG_DEBUG, string.format('Starting new page (%s) for %q.', number, topic))
+    redis.call('ZADD', topic .. '/pages', offset, number)
+end
+
+local page = topic .. '/pages/' .. number
+
+redis.call('ZADD', page, offset, item)
+
+return offset
