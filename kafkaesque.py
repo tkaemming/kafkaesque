@@ -52,7 +52,15 @@ def produce(topic, input):
 @cli.command(help="Read messages from a topic.")
 @click.argument('topic')
 def consume(topic):
-    raise NotImplementedError
+    consumer = Consumer(StrictRedis(), topic)
+    cursor = 0
+    while True:
+        cursor, batch = consumer.batch(cursor)
+        if not batch:
+            return
+
+        for offset, item in batch:
+            print offset, item
 
 
 if __name__ == '__main__':
