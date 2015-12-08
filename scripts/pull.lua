@@ -1,37 +1,39 @@
-local key = KEYS[1]
-local size = tonumber(ARGV[1])
-local offset = tonumber(ARGV[2])
-local limit = tonumber(ARGV[3])
+local topic = KEYS[1]
 
--- Find the offset where the page begins.
-local number = redis.call('ZRANGEBYSCORE', key .. '/pages', '(' .. offset - size, offset, 'LIMIT', 0, 1)[1]
-if number == nil then
-    error("The provided offset (" .. offset .. ") does not exist.")
-end
+local offset = tonumber(ARGV[1])
+
+local limit = tonumber(ARGV[2])
+
+-- Ensure that a valid offset is being requested.
+local endpoint = tonumber(redis.call('GET', topic .. '/offset')) or 0
+assert(endpoint >= offset)
+
+-- Find page where the offset is located.
+local number = redis.call('ZREVRANGEBYSCORE', topic .. '/pages', offset, '0', 'LIMIT', 0, 1)[1]
+assert(number ~= nil)
 
 local cursor = offset
 local results = {}
 while limit > #results do
-    local page = redis.call('ZRANGEBYSCORE', key .. '/pages/' .. number, offset, '+inf', 'LIMIT', 0, limit)
-    if #page == 0 then
-        if not redis.call('EXISTS', key .. '/pages/' .. number) then
-            error("Tried to fetch a missing page! This page may have been evicted due to retention policies.")
-        end
-    end
+    local fetch = limit - #results
+    local items = redis.call('ZRANGEBYSCORE', topic .. '/pages/' .. number, cursor, '+inf', 'LIMIT', 0, fetch)
 
-    for i,v in pairs(page) do
+    -- TODO: Is there a more efficient way to do this than iteration?
+    for i,v in pairs(items) do
         table.insert(results, v)
     end
 
-    cursor = cursor + #page
-
-    -- If the page isn't full, abort to avoid an infinite loop.
-    -- XXX: This assumes that deletions don't occur.
-    if size > #page then
+    -- There are two possibilities why the page is smaller than the fetch size:
+    -- 1.) we need to continue the read on the next page (in this case we won't
+    -- have hit the endpoint), or
+    -- 2.) this is the end of the topic and there is nothing left to read (in
+    -- this case we will have reached the endpoint)
+    cursor = cursor + #items
+    if fetch > #items and cursor == endpoint then
         break
     end
 
     number = number + 1
 end
 
-return {cursor, results}
+return results

@@ -25,13 +25,18 @@ class Producer(object):
 
 
 class Consumer(object):
-    def __init__(self, client, topic):
+    def __init__(self, client, topic, offset=0):
         self.client = client
         self.topic = topic
+        self.offset = offset  # next as yet unfetched offset
         self.__pull = client.register_script(open('scripts/pull.lua').read())
 
-    def consume(self):
-        raise NotImplementedError
+    def next(self, limit=1024):
+        logger.debug('Fetching (up to) %s items for %r from %s...', limit, self.topic, self.offset)
+        results = self.__pull((self.topic,), (self.offset, limit))
+        for i, result in enumerate(results):
+            yield self.offset, result
+            self.offset += 1
 
 
 @click.group()
