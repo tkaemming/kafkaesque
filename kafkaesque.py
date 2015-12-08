@@ -29,22 +29,30 @@ def cli():
     pass
 
 
+@cli.command(help="Create a topic.")
+@click.argument('topic')
+@click.option('--page-size', type=click.INT, default=1024)
+def create(topic, page_size):
+    topic = Topic(StrictRedis(), topic)
+    topic.create(page_size)
+
+
 @cli.command(help="Write messages to a topic.")
 @click.argument('topic')
 @click.argument('input', type=click.File('rb'), default='-')
 def produce(topic, input):
-    producer = Topic(StrictRedis(), topic)
+    topic = Topic(StrictRedis(), topic)
     for line in itertools.imap(operator.methodcaller('strip'), input):
-        producer.produce(line)
+        topic.produce(line)
 
 
 @cli.command(help="Read messages from a topic.")
 @click.argument('topic')
 def consume(topic):
-    consumer = Topic(StrictRedis(), topic)
+    topic = Topic(StrictRedis(), topic)
     cursor = 0
     while True:
-        cursor, batch = consumer.batch(cursor)
+        cursor, batch = topic.consume(cursor)
         if not batch:
             return
 
