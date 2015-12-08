@@ -36,4 +36,4 @@ while limit > #results do
     number = number + 1
 end
 
-return results
+return {cursor, results}

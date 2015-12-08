@@ -33,10 +33,10 @@ class Consumer(object):
 
     def next(self, limit=1024):
         logger.debug('Fetching (up to) %s items for %r from %s...', limit, self.topic, self.offset)
-        results = self.__pull((self.topic,), (self.offset, limit))
+        cursor, results = self.__pull((self.topic,), (self.offset, limit))
         for i, result in enumerate(results):
-            yield self.offset, result
-            self.offset += 1
+            yield self.offset + i, result
+        self.offset = cursor
 
 
 @click.group()
