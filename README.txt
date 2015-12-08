@@ -2,7 +2,8 @@ kafkaesque
 ==========
 
 "Marked by surreal distortion and often a sense of impending danger."
-(Definition from https://en.wiktionary.org/wiki/Kafkaesque)
+
+  - https://en.wiktionary.org/wiki/Kafkaesque
 
 Data Structures
 ---------------
