@@ -34,16 +34,33 @@ def produce(topic, input, batch_size):
     topic = Topic(StrictRedis(), topic)
     batch = []
 
+    start = time.time()
+
     def flush():
         print topic.produce(batch), batch
+        flush.count += len(batch)
         del batch[:]
 
-    for line in itertools.imap(operator.methodcaller('strip'), input):
-        batch.append(line)
-        if len(batch) == batch_size:
-            flush()
+    flush.count = 0
 
-    flush()
+    try:
+        for line in itertools.imap(operator.methodcaller('strip'), input):
+            batch.append(line)
+            if len(batch) == batch_size:
+                flush()
+
+        flush()
+    except KeyboardInterrupt:
+        pass
+
+    stop = time.time()
+    logger.info(
+        'Produced %s records in %s seconds (%s records/second.)',
+        flush.count,
+        stop - start,
+        flush.count / (stop - start),
+    )
+
 
 
 @cli.command(help="Read messages from a topic.")
@@ -52,20 +69,32 @@ def produce(topic, input, batch_size):
 def consume(topic, follow):
     topic = Topic(StrictRedis(), topic)
 
+    start = time.time()
     cursor = 0
-    while True:
-        cursor, batch = topic.consume(cursor)
-        logger.debug('Retrieved %s items from %s to %s.', len(batch), cursor, cursor + len(batch))
-        if not batch:
-            if not follow:
-                logger.debug('Retrieved empty batch (end of stream.)')
-                return
-            else:
-                logger.debug('Retrieved empty batch.')
-                time.sleep(0.1)
+    try:
+        while True:
+            cursor, batch = topic.consume(cursor)
+            logger.debug('Retrieved %s items from %s to %s.', len(batch), cursor, cursor + len(batch))
+            if not batch:
+                if not follow:
+                    logger.debug('Retrieved empty batch (end of stream.)')
+                    break
+                else:
+                    logger.debug('Retrieved empty batch.')
+                    time.sleep(0.1)
 
-        for offset, item in batch:
-            print offset, item
+            for offset, item in batch:
+                print offset, item
+    except KeyboardInterrupt:
+        pass
+
+    stop = time.time()
+    logger.info(
+        'Consumed %s records in %s seconds (%s records/second.)',
+        cursor,
+        stop - start,
+        cursor / (stop - start),
+    )
 
 
 if __name__ == '__main__':
