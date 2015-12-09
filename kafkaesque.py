@@ -1,6 +1,7 @@
 import itertools
 import logging
 import operator
+import time
 
 import click
 from redis.client import StrictRedis
@@ -65,7 +66,8 @@ def produce(topic, input):
 @cli.command(help="Read messages from a topic.")
 @click.argument('topic')
 @click.option('--consumer-id', default=None)
-def consume(topic, consumer_id):
+@click.option('-f', '--follow', is_flag=True)
+def consume(topic, consumer_id, follow):
     topic = Topic(StrictRedis(), topic)
 
     if consumer_id:
@@ -82,9 +84,14 @@ def consume(topic, consumer_id):
 
     while True:
         cursor, batch = topic.consume(cursor)
+        logger.debug('Retrieved %s items.', len(batch))
         if not batch:
-            logger.debug('Retrieved empty batch (end of stream.)')
-            return
+            if not follow:
+                logger.debug('Retrieved empty batch (end of stream.)')
+                return
+            else:
+                logger.debug('Retrieved empty batch.')
+                time.sleep(0.1)
 
         for offset, item in batch:
             print offset, item
