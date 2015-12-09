@@ -8,6 +8,15 @@ kafkaesque
 Data Structures
 ---------------
 
+{topic}
+
+    A MessagePack-encoded map storing configuration data for this topic,
+    including:
+
+    - size (integer): maximum size of a page in the topic
+    - ttl (integer or nil): number of seconds to retain pages after they have
+        been closed for writing
+
 {topic}/offset
 
     A number that represents the next value in a sequence used for addressing
