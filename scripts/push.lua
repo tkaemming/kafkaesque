@@ -14,6 +14,7 @@ local offset = tonumber(redis.call('INCR', topic .. '/offset')) - 1
 local number = 0
 if offset ~= 0 then
     local page = redis.call('ZREVRANGE', topic .. '/pages', '0', '0', 'WITHSCORES')
+    number = tonumber(page[1])
     if offset - tonumber(page[2]) >= configuration['size'] then
         number = number + 1
     end

@@ -31,7 +31,7 @@ def cli():
 
 @cli.command(help="Create a topic.")
 @click.argument('topic')
-@click.option('--page-size', type=click.INT, default=1024)
+@click.option('--page-size', type=click.INT, default=2 ** 16)
 def create(topic, page_size):
     topic = Topic(StrictRedis(), topic)
     topic.create(page_size)
