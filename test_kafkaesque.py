@@ -37,14 +37,14 @@ def test_produce(client):
     topic.create(size)
 
     payload, offset = generator.next()
-    topic.produce(payload)
+    topic.produce((payload,))
     items.append((payload, offset))
 
     assert client.zrangebyscore('{}/pages'.format(name), '-inf', 'inf', withscores=True) == [('0', 0.0)]
     assert list(enumerate(client.lrange('{}/pages/{}'.format(name, 0), 0, size))) == items
 
     for payload, offset in itertools.islice(generator, size):
-        topic.produce(payload)
+        topic.produce((payload,))
         items.append((payload, offset))
 
     assert client.zrangebyscore('{}/pages'.format(name), '-inf', 'inf', withscores=True) == [('0', 0.0), ('1', float(size))]
@@ -66,7 +66,7 @@ def test_consume_page_sizes(client):
     topic.create(size)
 
     for offset, payload in itertools.islice(generator, size + 1):
-        topic.produce(payload)
+        topic.produce((payload,))
         items.append([offset, payload])
 
     offset, batch = list(topic.consume(0, limit=size))
@@ -90,7 +90,7 @@ def test_consume_across_pages(client):
     topic.create(size)
 
     for offset, payload in itertools.islice(generator, size + 1):
-        topic.produce(payload)
+        topic.produce((payload,))
         items.append([offset, payload])
 
     # Check with batches crossing pages.
@@ -107,7 +107,7 @@ def test_ttl(client):
     topic.create(size, ttl=ttl)
 
     for i in xrange(0, size + 1):
-        topic.produce(i)
+        topic.produce((i,))
 
     assert ttl - 1 <= client.ttl('{}/pages/{}'.format(name, 0)) <= ttl
     assert client.ttl('{}/pages/{}'.format(name, 1)) == -1

@@ -29,8 +29,8 @@ class Topic(object):
     def consume(self, offset, limit=1024):
         return self.__pull((self.topic,), (offset, limit))
 
-    def produce(self, record):
-        return self.__push((self.topic,), (record,))
+    def produce(self, batch):
+        return self.__push((self.topic,), batch)
 
     def offset(self, consumer):
         score = self.client.zscore('{}/consumers'.format(self.topic), consumer)
@@ -57,10 +57,21 @@ def create(topic, page_size, ttl):
 @cli.command(help="Write messages to a topic.")
 @click.argument('topic')
 @click.argument('input', type=click.File('rb'), default='-')
-def produce(topic, input):
+@click.option('--batch-size', type=click.INT, default=1)
+def produce(topic, input, batch_size):
     topic = Topic(StrictRedis(), topic)
+    batch = []
+
+    def flush():
+        print topic.produce(batch), batch
+        del batch[:]
+
     for line in itertools.imap(operator.methodcaller('strip'), input):
-        print topic.produce(line), line
+        batch.append(line)
+        if len(batch) == batch_size:
+            flush()
+
+    flush()
 
 
 @cli.command(help="Read messages from a topic.")

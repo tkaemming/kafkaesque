@@ -21,6 +21,7 @@ local function close_page ()
         redis.log(redis.LOG_DEBUG, string.format('Set %s#%s to expire in %s seconds.', topic, number, configuration['ttl']))
     end
     number = number + 1
+    length = 0
 end
 
 local function check_page ()
@@ -28,6 +29,7 @@ local function check_page ()
         close_page()
         start_page()
     end
+    return configuration['size'] - length
 end
 
 local last = redis.call('ZREVRANGE', topic .. '/pages', '0', '0', 'WITHSCORES')
@@ -39,9 +41,13 @@ else
     start_page()
 end
 
-for i=1,#items do
-    check_page()
-    redis.call('RPUSH', topic .. '/pages/' .. number, items[i])
+local cursor = 0
+while #items > cursor do
+    local remaining = check_page()
+    for i=1,remaining do
+        redis.call('RPUSH', topic .. '/pages/' .. number, items[cursor + i])
+    end
+    cursor = cursor + remaining
 end
 
 return offset
