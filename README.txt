@@ -17,6 +17,13 @@ Data Structures
     - ttl (integer or nil): number of seconds to retain pages after they have
         been closed for writing
 
+{topic}/consumers
+
+    A sorted set containing registered consumers for this topic.
+
+    Items in the sorted set are consumer identifiers, scored by their latest
+    committed offset.
+
 {topic}/offset
 
     A number that represents the next value in a sequence used for addressing
