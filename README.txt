@@ -23,7 +23,10 @@ Drawbacks:
   floating point numbers. Writes that are attempted after this value is reached
   will fail. (This shouldn't be a practical concern, however -- at 10 million
   writes/second it would take around is around 10,424 days -- 28.5 years -- to
-  hit this limit.)
+  hit this limit. Considering a more realistic write throughput -- around
+  12,000 writes/second, around as fast as I could publish 8 KB messages to a
+  single server on a Early 2015 MacBook Pro -- this would take about 23,800
+  years.)
 
 Durability
 ----------
