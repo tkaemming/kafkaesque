@@ -5,7 +5,7 @@ import time
 import click
 from redis.client import StrictRedis
 
-from kafkaesque import Topic
+from kafkaesque.topic import Topic
 
 
 @click.command()
