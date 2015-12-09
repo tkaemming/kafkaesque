@@ -63,8 +63,8 @@ the server having an understanding of history that appears like this:
 
 Any clients who were able to fetch all of the records before the server failed
 may end up with a noncanonical understanding of history that looks like this,
-since they only retrieved records after the latest offset they had alredy received
-(in this case, `1`):
+since they only retrieved records after the latest offset they had already
+received -- in this case, anything after the offset `2`:
 
     offset  value
     ------  -----
