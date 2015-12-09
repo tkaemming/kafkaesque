@@ -44,9 +44,11 @@ end
 local cursor = 0
 while #items > cursor do
     local remaining = math.min(check_page(), #items - cursor)
+    local chunk = {}
     for i=1,remaining do
-        redis.call('RPUSH', topic .. '/pages/' .. number, items[cursor + i])
+        table.insert(chunk, items[cursor+i])
     end
+    redis.call('RPUSH', topic .. '/pages/' .. number, unpack(chunk))
     cursor = cursor + remaining
 end
 
