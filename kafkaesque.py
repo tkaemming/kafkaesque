@@ -14,8 +14,8 @@ class Topic(object):
         self.__push = client.register_script(open('scripts/push.lua').read())
         self.__pull = client.register_script(open('scripts/pull.lua').read())
 
-    def create(self, size=1024):
-        return self.__create((self.topic,), (size,))
+    def create(self, size=1024, ttl=None):
+        return self.__create((self.topic,), (size, ttl))
 
     def consume(self, offset, limit=1024):
         return self.__pull((self.topic,), (offset, limit))
@@ -32,9 +32,10 @@ def cli():
 @cli.command(help="Create a topic.")
 @click.argument('topic')
 @click.option('--page-size', type=click.INT, default=2 ** 16)
-def create(topic, page_size):
+@click.option('--ttl', type=click.INT, default=None)
+def create(topic, page_size, ttl):
     topic = Topic(StrictRedis(), topic)
-    topic.create(page_size)
+    topic.create(page_size, ttl)
 
 
 @cli.command(help="Write messages to a topic.")
@@ -43,7 +44,7 @@ def create(topic, page_size):
 def produce(topic, input):
     topic = Topic(StrictRedis(), topic)
     for line in itertools.imap(operator.methodcaller('strip'), input):
-        topic.produce(line)
+        print topic.produce(line), line
 
 
 @cli.command(help="Read messages from a topic.")

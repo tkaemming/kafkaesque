@@ -16,6 +16,10 @@ if offset ~= 0 then
     local page = redis.call('ZREVRANGE', topic .. '/pages', '0', '0', 'WITHSCORES')
     number = tonumber(page[1])
     if offset - tonumber(page[2]) >= configuration['size'] then
+        if configuration['ttl'] ~= nil then
+            redis.call('EXPIRE', topic .. '/pages/' .. number, configuration['ttl'])
+            redis.log(redis.LOG_DEBUG, string.format('Set %s#%s to expire in %s seconds.', topic, number, configuration['ttl']))
+        end
         number = number + 1
     end
 end
@@ -23,7 +27,7 @@ end
 -- TODO: We should be able to tell when we are creating a new page without
 -- having to query for it.
 if redis.call('ZSCORE', topic .. '/pages', number) == false then
-    redis.log(redis.LOG_DEBUG, string.format('Starting new page (%s) for %q.', number, topic))
+    redis.log(redis.LOG_DEBUG, string.format('Starting new page %s#%s.', topic, number))
     redis.call('ZADD', topic .. '/pages', offset, number)
 end
 
