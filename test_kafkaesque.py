@@ -3,7 +3,7 @@ import itertools
 import pytest
 from redis.client import StrictRedis
 
-from kafkaesque import Topic
+from kafkaesque.topic import Topic
 
 
 @pytest.yield_fixture
