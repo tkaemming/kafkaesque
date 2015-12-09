@@ -29,60 +29,73 @@ def test_produce(client):
 
     items = []
     generator = itertools.imap(
-        lambda (i, v): (str(v), float(i)),
-        enumerate(itertools.count()),
+        lambda i: (i, str(i)),
+        itertools.count(),
     )
 
     topic = Topic(client, name)
     topic.create(size)
-
-    assert client.exists('{}/offset'.format(name)) is False
 
     payload, offset = generator.next()
     topic.produce(payload)
     items.append((payload, offset))
 
-    assert client.get('{}/offset'.format(name)) == '1'
     assert client.zrangebyscore('{}/pages'.format(name), '-inf', 'inf', withscores=True) == [('0', 0.0)]
-    assert client.zrangebyscore('{}/pages/{}'.format(name, 0), '-inf', 'inf', withscores=True) == items
+    assert list(enumerate(client.lrange('{}/pages/{}'.format(name, 0), 0, size))) == items
 
     for payload, offset in itertools.islice(generator, size):
         topic.produce(payload)
         items.append((payload, offset))
 
-    assert client.get('{}/offset'.format(name)) == str(size + 1)
     assert client.zrangebyscore('{}/pages'.format(name), '-inf', 'inf', withscores=True) == [('0', 0.0), ('1', float(size))]
-    assert client.zrangebyscore('{}/pages/{}'.format(name, 0), '-inf', 'inf', withscores=True) == items[:size]
-    assert client.zrangebyscore('{}/pages/{}'.format(name, 1), '-inf', 'inf', withscores=True) == items[size:]
+    assert list(enumerate(client.lrange('{}/pages/{}'.format(name, 0), 0, size))) == items[:size]
+    assert list(enumerate(client.lrange('{}/pages/{}'.format(name, 1), 0, size), size)) == items[size:]
 
 
-def test_consume(client):
+def test_consume_page_sizes(client):
     name = 'example'
     size = 10
 
     items = []
     generator = itertools.imap(
-        lambda (i, v): [i, str(v)],
-        enumerate(itertools.count()),
+        lambda i: [i, str(i)],
+        itertools.count(),
     )
 
     topic = Topic(client, name)
     topic.create(size)
 
-    for payload, offset in itertools.islice(generator, size + 1):
+    for offset, payload in itertools.islice(generator, size + 1):
         topic.produce(payload)
-        items.append([payload, offset])
+        items.append([offset, payload])
 
-    # Check with batches aligned with page sizes, both full and not.
     offset, batch = list(topic.consume(0, limit=size))
     assert items[:size] == batch
 
     offset, batch = list(topic.consume(offset, limit=size))
     assert items[size:] == batch
 
+
+def test_consume_across_pages(client):
+    name = 'example'
+    size = 10
+
+    items = []
+    generator = itertools.imap(
+        lambda i: [i, str(i)],
+        itertools.count(),
+    )
+
+    topic = Topic(client, name)
+    topic.create(size)
+
+    for offset, payload in itertools.islice(generator, size + 1):
+        topic.produce(payload)
+        items.append([offset, payload])
+
     # Check with batches crossing pages.
-    offset, batch = topic.consume(0)
-    assert batch == items
+    offset, batch = topic.consume(5)
+    assert batch == items[5:]
 
 
 def test_ttl(client):
