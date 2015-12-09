@@ -28,17 +28,14 @@ def benchmark(count, topic, batch_size, page_size, payload_length):
     gc.disable()
     start = time.time()
 
-    if count:
-        assert count % batch_size == 0
-
     generator = xrange(1, count + 1) if count else itertools.count(1)
 
     i = 0
     try:
         for i in generator:
             topic.produce(batch)
-            if i % 10000 == 0:
-                print 'Produced', i, 'records.'
+            if i % 100 == 0:
+                print 'Produced', i, 'batches.'
     except KeyboardInterrupt:
         pass
 
