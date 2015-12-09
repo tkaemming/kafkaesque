@@ -34,20 +34,19 @@ A server may return a successful response to a produce request without having
 flushed the data to disk. If the primary server fails before `fsync`ing the
 AOF, *that data will be lost.*
 
-Compounding this problem, the (now) noncanonical data may have been received by
+Compounding this problem, the now noncanonical data may have been received by
 consumers downstream, who marked those offsets as committed. For example, let's
 say a consumer received this data:
 
-    offset  value  `fsync`ed?
-    ------  -----  -----------
+    offset  value  `fsync`ed by server
+    ------  -----  -------------------
     0       alpha  yes
     1       beta   no
     2       gamma  no
 
 If the server `fsync`s after receiving the first value (zeroith offset), but
 does not `fsync` after receiving the additional records, those subsequent
-non-`fsync`ed records records will be lost by the server if it crashes before
-executing a successful `fsync`.
+non-`fsync`ed records records will be lost by the server if it crashes.
 
 After the server is restarted, it will then recycle those offsets, leading to
 the server having an understanding of history that appears like this:
@@ -68,13 +67,19 @@ since they only retrieved records after the latest offset they had alredy receiv
     ------  -----
     0       alpha
     1       beta
-    2       delta
+    2       gamma
     3       zeta
 
 With a large number of consumers, a wide window for `fsync`s to occur, and a
-high frequency of records being published, it's possible that no consumer could
-share a consistent view of the log with any other. If this is a scary concept
-to you, it's a good sign that you should probably bite the bullet use Kafka.
+high frequency of records being published, it's possible that *no consumer
+could share a consistent view of the log with any other* due to inconsistent
+consumption rates. Note that this isn't even eventually consistent insofar that
+eventually all consumers would see the same version of history -- it's just
+plainly inconsistent.
+
+If this is a scary concept to you -- if you're dealing with finances, or other
+data that requires stronger (read: any) consistency semantics -- it's a good
+sign that you should probably bite the bullet and use Kafka.
 
 Data Structures
 ---------------
