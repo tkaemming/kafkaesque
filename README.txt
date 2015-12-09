@@ -31,8 +31,8 @@ Durability
 Infrequent `fsync` calls can lead to data loss!
 
 A server may return a successful response to a produce request without having
-flushed the data to disk or forwarded it to any replica. If the primary server
-fails before `fsync`ing the AOF, *that data will be lost.*
+flushed the data to disk. If the primary server fails before `fsync`ing the
+AOF, *that data will be lost.*
 
 Compounding this problem, the (now) noncanonical data may have been received by
 consumers downstream, who marked those offsets as committed. For example, let's
