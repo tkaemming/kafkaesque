@@ -83,3 +83,17 @@ def test_consume(client):
     # Check with batches crossing pages.
     offset, batch = topic.consume(0)
     assert batch == items
+
+
+def test_ttl(client):
+    name = 'example'
+    size = 10
+    ttl = 60
+
+    topic = Topic(client, name)
+    topic.create(size, ttl=ttl)
+
+    for i in xrange(0, size + 1):
+        topic.produce(i)
+
+    assert ttl - 1 <= client.ttl('{}/pages/{}'.format(name, 0)) <= ttl
