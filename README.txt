@@ -5,6 +5,77 @@ kafkaesque
 
   - https://en.wiktionary.org/wiki/Kafkaesque
 
+Overview
+--------
+
+Benefits:
+
+- Operationally straightforward.
+
+Drawbacks:
+
+- Reduced durability (dependent on `fsync` frequency, see `Durability` below.)
+- Reduced throughput (*really* dependent on `fsync` frequency.)
+- Reduced capacity (all data must be memory resident.)
+- No direct support for topic partitioning or consumer group balancing.
+- Reduced offset space per topic: the maximum offset is (2 ^ 53) - 1, the
+  largest unambiguous representation of an integer using double-precision
+  floating point numbers. Writes that are attempted after this value is reached
+  will fail. (This shouldn't be a practical concern, however -- at 10 million
+  writes/second it would take around is around 10,424 days -- 28.5 years -- to
+  hit this limit.)
+
+Durability
+----------
+
+Infrequent `fsync` calls can lead to data loss!
+
+A server may return a successful response to a produce request without having
+flushed the data to disk or forwarded it to any replica. If the primary server
+fails before `fsync`ing the AOF, *that data will be lost.*
+
+Compounding this problem, the (now) noncanonical data may have been received by
+consumers downstream, who marked those offsets as committed. For example, let's
+say a consumer received this data:
+
+    offset  value  `fsync`ed?
+    ------  -----  -----------
+    0       alpha  yes
+    1       beta   no
+    2       gamma  no
+
+If the server `fsync`s after receiving the first value (zeroith offset), but
+does not `fsync` after receiving the additional records, those subsequent
+non-`fsync`ed records records will be lost by the server if it crashes before
+executing a successful `fsync`.
+
+After the server is restarted, it will then recycle those offsets, leading to
+the server having an understanding of history that appears like this:
+
+    offset  value
+    ------  -------
+    0       alpha
+    1       delta
+    2       epsilon
+    3       zeta
+
+Any clients who were able to fetch all of the records before the server failed
+may end up with a noncanonical understanding of history that looks like this,
+since they only retrieved records after the latest offset they had alredy received
+(in this case, `1`):
+
+    offset  value
+    ------  -----
+    0       alpha
+    1       beta
+    2       delta
+    3       zeta
+
+With a large number of consumers, a wide window for `fsync`s to occur, and a
+high frequency of records being published, it's possible that no consumer could
+share a consistent view of the log with any other. If this is a scary concept
+to you, it's a good sign that you should probably bite the bullet use Kafka.
+
 Data Structures
 ---------------
 
