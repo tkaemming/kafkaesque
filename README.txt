@@ -50,3 +50,7 @@ Data Structures
     A sorted set, containing log records.
 
     Items in the sorted set are log records, scored by their offset.
+
+    Log records are MessagePack encoded as an array of [offset, item] to ensure
+    duplicated messages may be added to the sorted set. The specific encoding
+    is subject to change based on benchmarks.

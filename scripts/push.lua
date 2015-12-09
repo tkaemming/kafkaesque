@@ -33,6 +33,6 @@ end
 
 local page = topic .. '/pages/' .. number
 
-redis.call('ZADD', page, offset, item)
+redis.call('ZADD', page, offset, cmsgpack.pack({offset, item}))
 
 return offset

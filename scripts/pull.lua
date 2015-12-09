@@ -21,12 +21,10 @@ while limit > #results do
     assert(#items % 2 == 0)
     -- TODO: Is there a more efficient way to do this than iteration?
     for i=1,#items/2 do
-        table.insert(
-            results, {
-                tonumber(items[i*2]),  -- score (offset)
-                items[i*2-1]           -- payload
-            }
-        )
+        local score = tonumber(items[i*2])
+        local payload = cmsgpack.unpack(items[i*2-1])
+        assert(score == payload[1])  -- todo: remove me eventually
+        table.insert(results, payload)
     end
 
     -- There are two possibilities why the page is smaller than the fetch size:
