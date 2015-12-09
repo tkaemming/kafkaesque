@@ -84,7 +84,7 @@ def consume(topic, consumer_id, follow):
 
     while True:
         cursor, batch = topic.consume(cursor)
-        logger.debug('Retrieved %s items.', len(batch))
+        logger.debug('Retrieved %s items from %s to %s.', len(batch), cursor, cursor + len(batch))
         if not batch:
             if not follow:
                 logger.debug('Retrieved empty batch (end of stream.)')
