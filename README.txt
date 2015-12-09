@@ -25,8 +25,8 @@ Drawbacks:
   writes/second it would take around is around 10,424 days -- 28.5 years -- to
   hit this limit. Considering a more realistic write throughput -- around
   12,000 writes/second, around as fast as I could publish 8 KB messages to a
-  single server on a Early 2015 MacBook Pro -- this would take about 23,800
-  years.)
+  single server using a default Redis configuration on a Early 2015 MacBook Pro
+  -- this would take about 23,800 years.)
 
 Durability
 ----------
