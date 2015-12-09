@@ -1,7 +1,6 @@
 local topic = KEYS[1]
 
--- TODO: Support variadic arguments for publishing multiple items.
-local item = ARGV[1]
+local items = ARGV
 
 local configuration = redis.call('GET', topic)
 assert(configuration, 'topic does not exist')
@@ -9,6 +8,7 @@ configuration = cmsgpack.unpack(configuration)
 
 local number = 0
 local offset = 0
+local length = 0  -- length of current page
 
 local function start_page ()
     redis.log(redis.LOG_DEBUG, string.format('Starting new page %s#%s.', topic, number))
@@ -23,21 +23,25 @@ local function close_page ()
     number = number + 1
 end
 
-local last = redis.call('ZREVRANGE', topic .. '/pages', '0', '0', 'WITHSCORES')
-if #last > 0 then
-    number = tonumber(last[1])
-    local length = redis.call('LLEN', topic .. '/pages/' .. number)
-    offset = tonumber(last[2]) + length
+local function check_page ()
     if length >= configuration['size'] then
         close_page()
         start_page()
     end
+end
+
+local last = redis.call('ZREVRANGE', topic .. '/pages', '0', '0', 'WITHSCORES')
+if #last > 0 then
+    number = tonumber(last[1])
+    length = redis.call('LLEN', topic .. '/pages/' .. number)
+    offset = tonumber(last[2]) + length
 else
     start_page()
 end
 
-local page = topic .. '/pages/' .. number
-
-redis.call('RPUSH', page, item)
+for i=1,#items do
+    check_page()
+    redis.call('RPUSH', topic .. '/pages/' .. number, items[i])
+end
 
 return offset
