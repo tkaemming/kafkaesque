@@ -9,7 +9,7 @@ from kafkaesque import Topic
 
 
 @click.command()
-@click.option('--batch-size', type=click.INT, default=1024)
+@click.option('--batch-size', type=click.INT, default=1)
 @click.option('--page-size', type=click.INT, default=2 ** 16)
 @click.option('--payload-length', type=click.INT, default=1024)
 @click.option('-c', '--count', type=click.INT, default=None)
