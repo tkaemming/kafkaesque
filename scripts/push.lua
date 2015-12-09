@@ -10,23 +10,30 @@ configuration = cmsgpack.unpack(configuration)
 local number = 0
 local offset = 0
 
+local function start_page ()
+    redis.log(redis.LOG_DEBUG, string.format('Starting new page %s#%s.', topic, number))
+    assert(redis.call('ZADD', topic .. '/pages', offset, number) == 1)
+end
+
+local function close_page ()
+    if configuration['ttl'] ~= nil then
+        redis.call('EXPIRE', topic .. '/pages/' .. number, configuration['ttl'])
+        redis.log(redis.LOG_DEBUG, string.format('Set %s#%s to expire in %s seconds.', topic, number, configuration['ttl']))
+    end
+    number = number + 1
+end
+
 local last = redis.call('ZREVRANGE', topic .. '/pages', '0', '0', 'WITHSCORES')
 if #last > 0 then
     number = tonumber(last[1])
     local length = redis.call('LLEN', topic .. '/pages/' .. number)
     offset = tonumber(last[2]) + length
     if length >= configuration['size'] then
-        if configuration['ttl'] ~= nil then
-            redis.call('EXPIRE', topic .. '/pages/' .. number, configuration['ttl'])
-            redis.log(redis.LOG_DEBUG, string.format('Set %s#%s to expire in %s seconds.', topic, number, configuration['ttl']))
-        end
-        number = number + 1
-        redis.log(redis.LOG_DEBUG, string.format('Starting new page %s#%s.', topic, number))
-        redis.call('ZADD', topic .. '/pages', offset, number)
+        close_page()
+        start_page()
     end
 else
-    redis.log(redis.LOG_DEBUG, string.format('Starting new page %s#%s.', topic, number))
-    redis.call('ZADD', topic .. '/pages', offset, number)
+    start_page()
 end
 
 local page = topic .. '/pages/' .. number
