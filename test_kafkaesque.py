@@ -97,3 +97,4 @@ def test_ttl(client):
         topic.produce(i)
 
     assert ttl - 1 <= client.ttl('{}/pages/{}'.format(name, 0)) <= ttl
+    assert client.ttl('{}/pages/{}'.format(name, 1)) == -1
