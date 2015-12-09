@@ -43,7 +43,7 @@ end
 
 local cursor = 0
 while #items > cursor do
-    local remaining = check_page()
+    local remaining = math.min(check_page(), #items - cursor)
     for i=1,remaining do
         redis.call('RPUSH', topic .. '/pages/' .. number, items[cursor + i])
     end
