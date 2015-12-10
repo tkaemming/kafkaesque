@@ -35,6 +35,14 @@ Drawbacks:
   messages to a single server using a default Redis configuration on a Early
   2015 MacBook Pro -- this would take about 4,080 years.)
 
+Performance
+-----------
+
+A single Redis server has a relatively consistent throughput, regardless of the
+number of clients. If N clients are attempting to produce or consume records,
+their maximum throughput will be approximately the maximum throughput of a
+single client / N.
+
 Durability
 ----------
 
