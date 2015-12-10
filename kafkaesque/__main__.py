@@ -13,6 +13,10 @@ from kafkaesque.topic import Topic
 logger = logging.getLogger(__name__)
 
 
+def build_redis_client(dsn):
+    return StrictRedis.from_url(dsn)
+
+
 @click.group()
 def cli():
     pass
@@ -20,11 +24,12 @@ def cli():
 
 @cli.command(help="Create a topic.")
 @click.argument('topic')
-@click.option('--page-size', type=click.INT, default=2 ** 16)
 @click.option('--max', type=click.INT, default=None)
+@click.option('--page-size', type=click.INT, default=2 ** 16)
+@click.option('--redis', type=build_redis_client, default='redis:///')
 @click.option('--ttl', type=click.INT, default=None)
-def create(topic, page_size, ttl, max):
-    topic = Topic(StrictRedis(), topic)
+def create(topic, page_size, ttl, max, redis):
+    topic = Topic(redis, topic)
     topic.create(page_size, ttl=ttl, max=max)
 
 
@@ -32,8 +37,9 @@ def create(topic, page_size, ttl, max):
 @click.argument('topic')
 @click.argument('input', type=click.File('rb'), default='-')
 @click.option('--batch-size', type=click.INT, default=1)
-def produce(topic, input, batch_size):
-    topic = Topic(StrictRedis(), topic)
+@click.option('--redis', type=build_redis_client, default='redis:///')
+def produce(topic, input, batch_size, redis):
+    topic = Topic(redis, topic)
     batch = []
 
     start = time.time()
@@ -67,9 +73,10 @@ def produce(topic, input, batch_size):
 @cli.command(help="Read messages from a topic.")
 @click.argument('topic')
 @click.option('--fetch-size', type=click.INT, default=1024)
+@click.option('--redis', type=build_redis_client, default='redis:///')
 @click.option('-f', '--follow', is_flag=True)
-def consume(topic, follow, fetch_size):
-    topic = Topic(StrictRedis(), topic)
+def consume(topic, follow, fetch_size, redis):
+    topic = Topic(redis, topic)
 
     start = time.time()
     cursor = 0
@@ -103,10 +110,10 @@ def consume(topic, follow, fetch_size):
 
 @cli.command()
 @click.argument('topic')
+@click.option('--redis', type=build_redis_client, default='redis:///')
 @click.option('-p', '--pages', type=click.INT, default=10)
 def details(topic, pages):
-    client = StrictRedis()
-    with client.pipeline(transaction=False) as pipeline:
+    with redis.pipeline(transaction=False) as pipeline:
         pipeline.hgetall(topic)
         pipeline.zcard('{}/pages'.format(topic))
         pipeline.zrange('{}/pages'.format(topic), pages * -1, -1, withscores=True)
