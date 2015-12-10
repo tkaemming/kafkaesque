@@ -12,6 +12,7 @@ setup(
     install_requires=(
         'click',
         'redis',
+        'tabulate',
     ),
     tests_require=(
         'pytest',

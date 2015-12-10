@@ -1,6 +1,7 @@
 import itertools
 import logging
 import operator
+import tabulate
 import time
 
 import click
@@ -95,6 +96,28 @@ def consume(topic, follow, fetch_size):
         stop - start,
         cursor / (stop - start),
     )
+
+
+@cli.command()
+@click.argument('topic')
+def details(topic):
+    client = StrictRedis()
+    with client.pipeline(transaction=False) as pipeline:
+        pipeline.hgetall(topic)
+        pipeline.zcard('{}/pages'.format(topic))
+        pipeline.zrange('{}/pages'.format(topic), -10, -1, withscores=True)
+        results = pipeline.execute()
+
+    def header(label):
+        return '\n'.join(('-' * 80, label, '-' * 80))
+
+    print header('CONFIGURATION')
+    print tabulate.tabulate(results[0].items(), headers=('key', 'value'))
+
+    print ''
+
+    print header('PAGES ({} total)'.format(results[1]))
+    print tabulate.tabulate(results[2], headers=('page', 'offset'))
 
 
 if __name__ == '__main__':
