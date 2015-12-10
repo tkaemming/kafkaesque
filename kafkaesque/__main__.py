@@ -86,7 +86,7 @@ def consume(topic, follow, fetch_size):
                     logger.debug('Retrieved empty batch.')
                     time.sleep(0.1)
 
-            for n, (offset, item) in enumerate(batch, 1):
+            for n, (offset, item) in enumerate(batch, n + 1):
                 print offset, item
     except KeyboardInterrupt:
         pass
@@ -102,12 +102,13 @@ def consume(topic, follow, fetch_size):
 
 @cli.command()
 @click.argument('topic')
-def details(topic):
+@click.option('-p', '--pages', type=click.INT, default=10)
+def details(topic, pages):
     client = StrictRedis()
     with client.pipeline(transaction=False) as pipeline:
         pipeline.hgetall(topic)
         pipeline.zcard('{}/pages'.format(topic))
-        pipeline.zrange('{}/pages'.format(topic), -10, -1, withscores=True)
+        pipeline.zrange('{}/pages'.format(topic), pages * -1, -1, withscores=True)
         results = pipeline.execute()
 
     def header(label):
