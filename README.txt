@@ -5,6 +5,13 @@ kafkaesque
 
   - https://en.wiktionary.org/wiki/Kafkaesque
 
+Example
+-------
+
+    python -m kafkaesque create words --page-size 4096
+    python -m kafkaesque produce --batch-size 1024 words < /usr/share/dict/words
+    python -m kafkaesque consume --fetch-size 512 words
+
 Overview
 --------
 
@@ -27,13 +34,6 @@ Drawbacks:
   70,000 writes/second, around as fast as I could publish batches of 100 4 KB
   messages to a single server using a default Redis configuration on a Early
   2015 MacBook Pro -- this would take about 4,080 years.)
-
-Example
--------
-
-    python -m kafkaesque create words --page-size 4096
-    python -m kafkaesque produce --batch-size 1024 words < /usr/share/dict/words
-    python -m kafkaesque consume --fetch-size 1024 words
 
 Durability
 ----------
