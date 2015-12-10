@@ -12,11 +12,21 @@ local start = tonumber(page[2])
 
 local cursor = offset
 local results = {}
-while limit > #results do
+
+local function fetch_items ()
     local fetch = limit - #results
     local items = redis.call('LRANGE', topic .. '/pages/' .. number, cursor - start, cursor - start + fetch - 1)
     if #items == 0 then
-        break
+        -- This could be because the page doesn't exist -- if that is the case, check the next page.
+        local next = tonumber(redis.call('ZSCORE', topic .. '/pages', (number + 1)))
+        if next ~= nil then
+            number = number + 1
+            cursor = next
+            start = cursor
+            return true
+        else
+            return false
+        end
     end
 
     for i=1,#items do
@@ -27,6 +37,14 @@ while limit > #results do
     if fetch >= #items then
         number = number + 1
         start = cursor
+    end
+
+    return true
+end
+
+while limit > #results do
+    if fetch_items() == false then
+        break
     end
 end
 
