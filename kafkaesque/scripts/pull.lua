@@ -13,7 +13,7 @@ local start = tonumber(page[2])
 local cursor = offset
 local results = {}
 
-local function fetch_items ()
+local function fetch_items()
     local fetch = limit - #results
     local items = redis.call('LRANGE', topic .. '/pages/' .. number, cursor - start, cursor - start + fetch - 1)
     if #items == 0 then
