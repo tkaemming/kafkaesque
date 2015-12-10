@@ -65,15 +65,16 @@ def produce(topic, input, batch_size):
 
 @cli.command(help="Read messages from a topic.")
 @click.argument('topic')
+@click.option('--fetch-size', type=click.INT, default=1024)
 @click.option('-f', '--follow', is_flag=True)
-def consume(topic, follow):
+def consume(topic, follow, fetch_size):
     topic = Topic(StrictRedis(), topic)
 
     start = time.time()
     cursor = 0
     try:
         while True:
-            cursor, batch = topic.consume(cursor)
+            cursor, batch = topic.consume(cursor, fetch_size)
             logger.debug('Retrieved %s items from %s to %s.', len(batch), cursor, cursor + len(batch))
             if not batch:
                 if not follow:
