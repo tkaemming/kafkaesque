@@ -18,6 +18,7 @@ local function fetch_items ()
     local items = redis.call('LRANGE', topic .. '/pages/' .. number, cursor - start, cursor - start + fetch - 1)
     if #items == 0 then
         -- This could be because the page doesn't exist -- if that is the case, check the next page.
+        -- TODO: In this case, it might just be more appropriate to error rather than hide missing pages?
         local next = tonumber(redis.call('ZSCORE', topic .. '/pages', (number + 1)))
         if next ~= nil then
             number = number + 1
