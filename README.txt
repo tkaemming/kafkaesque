@@ -38,10 +38,11 @@ Drawbacks:
 Performance
 -----------
 
-A single Redis server has a relatively consistent throughput, regardless of the
-number of clients. If N clients are attempting to produce or consume records,
-their maximum throughput will be approximately the maximum throughput of a
-single client / N.
+A single Redis server will often reach maximum CPU utilization before any other
+resources, and once maximized, the server will have a relatively consistent
+throughput regardless of the number of clients. If N clients are producing or
+consuming records, each client's individual maximum throughput will be roughly
+the maximum throughput of a single client performing the same actions / N.
 
 Durability
 ----------
