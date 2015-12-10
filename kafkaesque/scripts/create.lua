@@ -4,7 +4,8 @@ assert(redis.call('EXISTS', topic) == 0)
 
 local configuration = {
     size=tonumber(ARGV[1]),
-    ttl=tonumber(ARGV[2]),
+    max=tonumber(ARGV[2]),
+    ttl=tonumber(ARGV[3]),
 }
 
 -- TODO: There has to be a more elegant way to do this.

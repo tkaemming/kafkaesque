@@ -21,10 +21,11 @@ def cli():
 @cli.command(help="Create a topic.")
 @click.argument('topic')
 @click.option('--page-size', type=click.INT, default=2 ** 16)
+@click.option('--max', type=click.INT, default=None)
 @click.option('--ttl', type=click.INT, default=None)
-def create(topic, page_size, ttl):
+def create(topic, page_size, ttl, max):
     topic = Topic(StrictRedis(), topic)
-    topic.create(page_size, ttl)
+    topic.create(page_size, ttl=ttl, max=max)
 
 
 @cli.command(help="Write messages to a topic.")

@@ -14,8 +14,8 @@ class Topic(object):
         self.__push = client.register_script(resource_string('scripts/push.lua'))
         self.__pull = client.register_script(resource_string('scripts/pull.lua'))
 
-    def create(self, size=1024, ttl=None):
-        return self.__create((self.topic,), (size, ttl))
+    def create(self, size=1024, max=None, ttl=None):
+        return self.__create((self.topic,), (size, max, ttl))
 
     def consume(self, offset, limit=1024):
         return self.__pull((self.topic,), (offset, limit))

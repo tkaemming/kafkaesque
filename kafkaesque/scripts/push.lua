@@ -3,10 +3,11 @@ local topic = KEYS[1]
 local items = ARGV
 
 local function load_configuration()
-    local values = redis.call('HMGET', topic, 'size', 'ttl')
+    local values = redis.call('HMGET', topic, 'size', 'max', 'ttl')
     return {
         size=tonumber(values[1]),
-        ttl=tonumber(values[2])
+        max=tonumber(values[2]),
+        ttl=tonumber(values[3])
     }
 end
 
@@ -25,6 +26,10 @@ local function close_page()
     if configuration['ttl'] ~= nil then
         redis.call('EXPIRE', topic .. '/pages/' .. number, configuration['ttl'])
         redis.log(redis.LOG_DEBUG, string.format('Set %s#%s to expire in %s seconds.', topic, number, configuration['ttl']))
+    end
+    if configuration['max'] ~= nil and number - configuration['max'] >= 0 then
+        redis.call('DEL', topic .. '/pages/' .. number - configuration['max'])
+        redis.log(redis.LOG_DEBUG, string.format('Dropped %s#%s due to retention policy.', topic, number - configuration['max']))
     end
     number = number + 1
     length = 0
