@@ -62,7 +62,6 @@ def produce(topic, input, batch_size):
     )
 
 
-
 @cli.command(help="Read messages from a topic.")
 @click.argument('topic')
 @click.option('--fetch-size', type=click.INT, default=1024)
