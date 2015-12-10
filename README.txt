@@ -28,6 +28,13 @@ Drawbacks:
   messages to a single server using a default Redis configuration on a Early
   2015 MacBook Pro -- this would take about 4,080 years.)
 
+Example
+-------
+
+    python -m kafkaesque create words --page-size 4096
+    python -m kafkaesque produce --batch-size 1024 words < /usr/share/dict/words
+    python -m kafkaesque consume --fetch-size 1024 words
+
 Durability
 ----------
 
