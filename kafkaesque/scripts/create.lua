@@ -18,3 +18,5 @@ for k, v in pairs(configuration) do
 end
 
 redis.call('HMSET', topic, unpack(options))
+
+return true
